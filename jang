@@ -1,0 +1,16 @@
+#!/bin/bash
+
+TGT=$(python <<PY
+import random, string
+print "".join(random.choice(string.letters + string.digits) for i in xrange(12))
+PY
+).png
+
+LSRC=/tmp/$TGT
+DST=jing/$TGT
+URL=http://bsg.lericson.se/jing/$TGT
+
+screencapture -i "$LSRC" || exit
+scp -q "$LSRC" "${HOST:-lericson.se}:public_html/$DST" || exit
+rm "$LSRC"
+echo "$URL"

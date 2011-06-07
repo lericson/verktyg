@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# find & grep
+# findgrep <dir> <grep args> -- <find args>
+
+TARGET="$1"
+shift
+
+GREP_ARGS=( )
+while [ $# -gt 0 ]; do
+  if [[ "$1" == "--" ]]; then
+    shift
+    break
+  else
+    GREP_ARGS[${#GREP_ARGS}]="$1"
+  fi
+  shift
+done
+
+find "$TARGET" -type f "$@" -exec grep "${GREP_ARGS[@]}" {} +

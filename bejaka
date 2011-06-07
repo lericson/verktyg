@@ -1,0 +1,4 @@
+#!/bin/sh
+HOST="$1"
+shift
+exec ssh "$HOST" -t screen -U -D -RR "$@"

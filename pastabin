@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, unicode_literals
+
+import sys
+import urllib2
+from urllib import urlencode
+
+server_url = "http://pb.lericson.se/"
+
+def paste(lexer, content):
+    data = urlencode([("lexer", lexer), ("code", content)])
+    try:
+        return urllib2.urlopen(server_url, data)
+    except urllib2.URLError as e:
+        print("error in posting code: %s" % (e,), file=sys.stderr)
+        if hasattr(e, "code"):
+            print("http code %d from %s" % (e.code, e.url))
+
+def main():
+    content = sys.stdin.read().decode("utf-8").encode("utf-8")
+    lexer = "".join(sys.argv[1:]) or "text"
+    print(paste(lexer, content).url)
+
+if __name__ == "__main__":
+    main()
