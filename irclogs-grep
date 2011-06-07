@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# findgrep for irclogs
+exec findgrep "${HOME}/irclogs" "$@"
