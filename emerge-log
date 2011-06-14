@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import os
+import time
+import datetime
+from itertools import ifilter
+
+filter_blank = lambda it: ifilter(None, it)
+unix2local = lambda t: datetime.datetime.fromtimestamp(t)
+
+def read_timestamp(it, parse_ts=lambda ts: unix2local(int(ts)), delim=":  "):
+    for L in it:
+        if delim in L:
+            (ts, remain) = L.split(":  ", 1)
+            yield dict(ts=parse_ts(ts), text=remain)
+        else:
+            yield dict(ts=None, text=L)
+
+def classify_level(it, classes=(">>> ", "=== ", "::: ")):
+    for d in it:
+        text = d["text"]
+        for (idx, klass) in enumerate(classes):
+            if text.startswith(klass):
+                yield dict(d, text=text[len(klass):],
+                           class_value=klass, class_num=idx)
+                break
+        else:
+            yield dict(d, class_value=None, class_num=None)
+
+def ansi_colored(text, cnum):
+    return "\x1b[0;%dm%s\x1b[0m" % (cnum, text)
+
+def packed_keys(it, keys):
+    for v in it:
+        yield tuple(v[k] for k in keys)
+
+def tailed_file(fp, interval=1.0):
+    while True:
+        for line in fp:
+            yield line
+        if interval:
+            time.sleep(interval)
+
+def timestamp_printer():
+    prev = datetime.datetime(1990, 1, 31)
+    while True:
+        now = (yield prev)
+        if now is None:
+            continue
+        if prev.date() != now.date():
+            print(now.date())
+        print(now.time(), end=" ")
+        prev = now
+
+def print_log_lines(lines):
+    lines = filter_blank(lines)
+    lines = read_timestamp(lines)
+    lines = classify_level(lines)
+    ts_printer = timestamp_printer()
+    ts_printer.next()
+    for ts, cnum, text in packed_keys(lines, ("ts", "class_num", "text")):
+        ts_printer.send(ts)
+        if cnum is not None:
+            text = ansi_colored(text, 31 + cnum)
+        print(text, end="")
+
+def main():
+    import sys
+    print_log_lines(iter(sys.stdin.readline, ""))
+
+L = """
+1307543143:  >>> AUTOCLEAN: app-admin/python-updater:0
+1307543143:  === Unmerging... (app-admin/python-updater-0.8)
+1307543145:  >>> unmerge success: app-admin/python-updater-0.8
+1307543147:  === (42 of 52) Post-Build Cleaning (app-admin/python-updater-0.8-r1::/usr/portage/app-admin/python-updater/python-updater-0.8-r1.ebuild)
+1307543147:  ::: completed emerge (42 of 52) app-admin/python-updater-0.8-r1 to /
+1307543147:  >>> emerge (43 of 52) dev-libs/glib-2.28.6 to /
+1307543148:  === (43 of 52) Cleaning (dev-libs/glib-2.28.6::/usr/portage/dev-libs/glib/glib-2.28.6.ebuild)
+1307543148:  === (43 of 52) Compiling/Merging (dev-libs/glib-2.28.6::/usr/portage/dev-libs/glib/glib-2.28.6.ebuild)
+1307543640:  === (43 of 52) Merging (dev-libs/glib-2.28.6::/usr/portage/dev-libs/glib/glib-2.28.6.ebuild)
+1307543647:  >>> AUTOCLEAN: dev-libs/glib:2
+1307543647:  === Unmerging... (dev-libs/glib-2.18.4-r1)
+1307543650:  >>> unmerge success: dev-libs/glib-2.18.4-r1
+1307543654:  === (43 of 52) Post-Build Cleaning (dev-libs/glib-2.28.6::/usr/portage/dev-libs/glib/glib-2.28.6.ebuild)
+1307543654:  ::: completed emerge (43 of 52) dev-libs/glib-2.28.6 to /
+1307543654:  >>> emerge (44 of 52) virtual/package-manager-0 to /
+""".splitlines()
+L = [v + "\n" for v in L]
+
+if __name__ == "__main__":
+    main()
