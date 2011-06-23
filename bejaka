@@ -18,8 +18,8 @@ case "${MODE}" in
     screen) exec ${SSHARGS[@]} screen -U -RR -D "${SESS}"
             ;;
     tmux)   test -n "${SESS}" \
-              && exec ${SSHARGS[@]} "tmux attach -t '${SESS}' || tmux new -s '${SESS}'" \
-              || exec ${SSHARGS[@]} "tmux attach || tmux new"
+              && exec ${SSHARGS[@]} "tmux -u attach -t '${SESS}' || tmux -u new -s '${SESS}'" \
+              || exec ${SSHARGS[@]} "tmux -u attach || tmux -u new"
             ;;
     *)      echo "$0: ${MODE} is not a known mode" >&2
             exit 1
