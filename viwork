@@ -1,2 +1,10 @@
 #!/bin/sh
-exec "${EDITOR:-vim}" "${HOME}/Desktop/work.log"
+
+GPG_LOG="${HOME}/Documents/work.log.asc"
+TMP_LOG="/tmp/work.log"
+
+trap "{ rm -f ${TMP_LOG}; exit 255; }" EXIT
+
+gpg --default-recipient-self -d -o "${TMP_LOG}" "${GPG_LOG}" && \
+  "${EDITOR:-vim}" "${TMP_LOG}" && \
+  gpg --default-recipient-self -e -a -o "${GPG_LOG}" "${TMP_LOG}"
