@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ME="${0##*/}"
 LOCAL_HOST="${LOCAL_HOST:-127.0.0.1:2525}"
 SMTP_HOST="${SMTP_HOST:-mailout.comhem.se:25}"
 TUNNEL_HOST="${1:-${TUNNEL_HOST:-lericson.se}}"
@@ -9,9 +10,9 @@ TUNPID="$(pgrep -f "${CMD[*]}")"
 RC="$?"
 
 if [ "$RC" -ne 0 ]; then
-  echo "$0: setting up tunnel"
+  echo "${ME}: setting up tunnel"
   echo "${CMD[@]}"
   exec "${CMD[@]}"
 else
-  echo "$0: tunnel seems to be up at $TUNPID"
+  echo "${ME}: tunnel seems to be up at $TUNPID"
 fi
