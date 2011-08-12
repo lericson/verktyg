@@ -1,0 +1,206 @@
+" Great .vimrc of Steel and Thunder
+" 
+" Adapted mostly for Mac OS X.
+"
+" :Author: Ludvig Ericson <ludvig@lericson.se>
+
+" {{{ Settings
+
+" The colorscheme
+colorscheme solarized
+
+" Who cares about vi?
+set nocompatible
+
+" Hidden buffers <3
+set hidden
+
+" PEP 8
+set et ts=8 sw=4 sts=4
+
+" Show cursor position at all time
+set ruler
+
+" Auto indent after a {
+set autoindent
+
+" Show matching brackets for 1 tenth of a second
+set showmatch matchtime=1
+
+" Disable autonewline feature
+set textwidth=0
+
+" Do not wrap lines automatically
+set nowrap
+
+" Show line numbers by default
+set number
+
+" Fold by markers
+set foldmethod=marker foldnestmax=1
+
+" Do not autoclose folds when moving out of them
+set foldclose=
+
+" Use incremental searching
+set incsearch
+
+" No hilighted search
+set nohlsearch
+
+" Jump N lines when running out of the screen
+set scrolljump=1
+
+" Indicate jump out of the screen when N lines before end of the screen
+set scrolloff=10
+
+" How to behave with automated formatting (like gq)
+set formatoptions=qroct
+
+" No join spaces when using J etc
+set nojoinspaces
+
+" Allow backspacing over anything
+set backspace=start,eol,indent
+
+" Set paste toggle to CTRL+p
+set pastetoggle=<C-p>
+
+" Syntax hilighting synchronization options
+syn sync minlines=500 maxlines=3000
+syn on
+
+" .viminfo settings (mostly defaults)
+set viminfo=%100,'100,/100,h,\"500,:100,n~/.viminfo
+
+" Path extend
+set path+=/usr/local/include
+
+" Disable swap files
+set noswapfile
+
+" Enable ft
+filetype on            " enables filetype detection
+filetype plugin on     " enables filetype specific plugins
+
+" }}} Settings
+
+" {{{ netrw settings
+let g:netrw_hide=1
+let g:netrw_list_hide='\.py[oc]$,^.DS_Store$'
+" }}}
+
+" {{{ Alt-[0-9] tab keymap
+
+" Note that most terminals these days send <ESC> then the key when you hit
+" alt-<key>, thus I've told vim to use <ESC><key>.
+noremap <ESC>1 1gt
+noremap <ESC>2 2gt
+noremap <ESC>3 3gt
+noremap <ESC>4 4gt
+noremap <ESC>5 5gt
+noremap <ESC>6 6gt
+noremap <ESC>7 7gt
+noremap <ESC>8 8gt
+noremap <ESC>9 9gt
+noremap <ESC>l gt
+noremap <ESC>h gT
+
+" Cmd-[num] etc.
+noremap <M-Tab> <C-W>w
+noremap <S-M-Tab> <C-W>W
+noremap <D-S-Right> gt
+noremap <D-S-Left> gT
+noremap <D-1> 1gt
+noremap <D-2> 2gt
+noremap <D-3> 3gt
+noremap <D-4> 4gt
+noremap <D-5> 5gt
+noremap <D-6> 6gt
+noremap <D-7> 7gt
+noremap <D-8> 8gt
+noremap <D-9> 9gt
+
+" }}}
+
+" {{{ Misc keybinds
+
+" Save and run file with Python
+noremap <C-o> :w!<CR>:!python %<CR>
+inoremap <C-o> <ESC><C-o>a
+
+" Remove hilight
+map gf :noh<CR>
+
+" }}}
+
+" {{{ Autocompletion using tab
+
+" This function determines whether we are on the start of the line text
+" (if so, tab adds indention) or if we want to try to autocomplete.
+function! InsertTabWrapper()
+    let col = col('.') - 1
+    if !col || getline('.')[col - 1] !~ '\k'
+        return "\<tab>"
+    else
+        return "\<c-p>"
+    endif
+endfunction
+
+" Remap the tab key to select action with InsertTabWrapper
+inoremap <tab> <c-r>=InsertTabWrapper()<cr>
+
+" }}}
+
+" {{{ Typo-consolation command aliases
+command! W w
+command! Wq wq
+command! WQ wq
+" }}}
+
+" {{{ Background light/dark
+if has("gui_running")
+    set background=light
+    set fuoptions=maxvert,maxhorz
+else
+    set background=dark
+endif
+" }}}
+
+" {{{ vim -b: .bin editing
+augroup Binary
+  au!
+  au BufReadPre  *.bin let &bin=1
+  au BufReadPost *.bin if &bin | %!xxd
+  au BufReadPost *.bin set ft=xxd | endif
+  au BufWritePre *.bin if &bin | %!xxd -r
+  au BufWritePre *.bin endif
+  au BufWritePost *.bin if &bin | %!xxd
+  au BufWritePost *.bin set nomod | endif
+augroup END
+" }}}
+
+" {{{ Abbrs
+iab pyshe #!/usr/bin/env python
+iab pyenc # -*- coding: utf-8 -*-
+iab pydefmain def main(args=sys.argv[1:]):
+iab pyifmain if __name__ == "__main__":
+iab pydoct <tab>import doctest<cr>doctest.testmod()
+iab improt import
+iab pylogger logger = logging.getLogger(__name__)
+iab pypdb __import__("pdb").set_trace()
+iab pyerr print >>__import__("sys").stderr,
+" }}}
+
+" {{{ REMOVE ME: Wrap visual selections with chars
+"
+"vnoremap ( "zdi(<C-R>z)<ESC>
+"vnoremap { "zdi{<C-R>z}<ESC>
+"vnoremap [ "zdi[<C-R>z]<ESC>
+"vnoremap ' "zdi'<C-R>z'<ESC>
+"vnoremap " "zdi"<C-R>z"<ESC>
+"
+" }}} Wrap visual selections with chars
+
+" 2-space indent in HTML/CSS/JS.
+autocmd BufEnter * if &filetype == "html" || &filetype == "htmldjango" || &filetype == "htmljinja" || &filetype == "css" || &filetype == "javascript" | setlocal ts=2 sw=2 sts=2 | endif
