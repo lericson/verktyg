@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, unicode_literals
+
+import sys
+from os import path
+
+def find_module(modname):
+    # XXX Huge side-effect: the module is run.
+    fn = __import__(modname).__file__
+    if fn.endswith(b".pyc"):
+        fn = fn[:-4] + b".py"
+    if fn.endswith(b"/__init__.py"):
+        fn = path.dirname(fn)
+    return fn
+
+def main(args=sys.argv[1:]):
+    for modname in args:
+        print(find_module(modname))
+
+if __name__ == "__main__":
+    main()
