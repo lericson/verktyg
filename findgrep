@@ -17,4 +17,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-find "$TARGET" -type f "$@" -exec grep "${GREP_ARGS[@]}" {} +
+echo "find $TARGET -type f $@" >&2
+echo "grep ${GREP_ARGS[@]}" >&2
+exec find "$TARGET" -type f "$@" -exec grep "${GREP_ARGS[@]}" {} +
