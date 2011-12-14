@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# usage: pbedit [args]
+# edit the pasteboard text buffer
+# any and all arguments are passed to pbpaste/pbcopy
+
+FN=`mktemp pbedit.XXXXXXX`
+trap "rm $FN" EXIT
+pbpaste "$@" >$FN
+"${EDITOR:-vim}" "$FN" || exit
+pbcopy "$@" <$FN
