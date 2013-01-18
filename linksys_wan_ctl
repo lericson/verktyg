@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+"""Command-line interface for linksys routers' WAN interface.
+
+Tailored to firmware version v4.30.7, Jun. 20, 2006 on model WRT54GL.
+"""
+
+import re
+import sys
+import urllib2
+from urlparse import urljoin
+
+import bs4
+
+def labelscrub(v):
+    if v.startswith('Capture(') and v.endswith(')'):
+        return v[8:-1]
+
+def info(soup):
+    for row in soup(id='AutoNumber9')[0].table('tr'):
+        markers = row('td', colspan='3', height='25')
+        if not markers:
+            continue
+
+        label = markers[0].next_sibling
+        while label and getattr(label, 'name', None) != 'td':
+            label = label.next_sibling
+        if not label or not label.script:
+            continue
+
+        value = label.next_sibling
+        while value and getattr(value, 'name', None) != 'td':
+            value = value.next_sibling
+        if not value or not value.b:
+            continue
+
+        yield (labelscrub(label.script.string), value.b.string)
+
+def info_ui(api):
+    for k, v in info(api('Status_Router.asp')):
+        print '%-20s%r' % (k, v)
+
+def renew_ui(api):
+    data = ('submit_button=Status_Router&submit_type=renew&'
+            'change_action=gozila_cgi&wan_proto=dhcp')
+    for k, v in info(api('apply.cgi', data=data)):
+        print '%-20s%r' % (k, v)
+
+def mock_api(m, data=None):
+    import zlib
+    resp = """
+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
+"""
+    html = zlib.decompress(resp.decode('base64'))
+    return bs4.BeautifulSoup(html)
+
+def main(args=sys.argv[1:]):
+    url = 'http://192.168.1.1/'
+    def local_api(m, data=None):
+        req = urllib2.Request(urljoin(url, m), data=data)
+        req.headers['Authorization'] = 'Basic YWRtaW46YWRtaW4='
+        return bs4.BeautifulSoup(urllib2.urlopen(req))
+    api = local_api
+    verb = (args or ['info'])[0]
+    verbs = {'info': info_ui,
+             'renew': renew_ui}
+    print 'Performing', verb, 'using', api
+    verbs[verb](api)
+
+if __name__ == "__main__":
+    main()
