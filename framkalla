@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import optparse
+import subprocess
+
+parser = optparse.OptionParser()
+parser.add_option('--scale')
+parser.add_option('--move')
+
+def main(args=sys.argv[1:]):
+    opts, args = parser.parse_args()
+    convert_args = []
+    if opts.scale:
+        convert_args.extend(('-scale', opts.scale))
+    if opts.move:
+        if not os.path.exists(opts.move):
+            os.mkdir(opts.move)
+    for fn in args:
+        fn_base = fn.rsplit('.', 1)[0]
+        fn_tiff = fn_base + '.tmp.tiff'
+        fn_out = fn_base + '.jpg'
+        print 'tiff extract:', fn, '->', fn_tiff
+        subprocess.check_call(['tiffutil', '-extract', '0', fn, '-out', fn_tiff])
+        print 'convert:', fn_tiff, '->', fn_out
+        subprocess.check_call(['convert', fn_tiff] + convert_args + [fn_out])
+        os.unlink(fn_tiff)
+        if opts.move:
+            fn_dir, fn_filename = os.path.split(fn)
+            fn_move = os.path.join(fn_dir, opts.move, fn_filename)
+            print 'move:', fn, '->', fn_move
+            os.rename(fn, fn_move)
+
+if __name__ == "__main__":
+    main()
