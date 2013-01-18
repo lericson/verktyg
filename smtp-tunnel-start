@@ -2,8 +2,8 @@
 
 ME="${0##*/}"
 LOCAL_HOST="${LOCAL_HOST:-127.0.0.1:2525}"
-SMTP_HOST="${SMTP_HOST:-mailout.comhem.se:25}"
-TUNNEL_HOST="${1:-${TUNNEL_HOST:-lericson.se}}"
+SMTP_HOST="${SMTP_HOST:-moln.lericson.se:465}"
+TUNNEL_HOST="${1:-${TUNNEL_HOST:-coneri.se}}"
 
 CMD=( ssh -fNL "${LOCAL_HOST}:${SMTP_HOST}" "$TUNNEL_HOST" )
 TUNPID="$(pgrep -f "${CMD[*]}")"
