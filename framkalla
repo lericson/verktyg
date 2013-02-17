@@ -8,6 +8,7 @@ import subprocess
 parser = optparse.OptionParser()
 parser.add_option('--scale')
 parser.add_option('--move')
+parser.add_option('--destination')
 
 def main(args=sys.argv[1:]):
     opts, args = parser.parse_args()
@@ -18,17 +19,18 @@ def main(args=sys.argv[1:]):
         if not os.path.exists(opts.move):
             os.mkdir(opts.move)
     for fn in args:
-        fn_base = fn.rsplit('.', 1)[0]
-        fn_tiff = fn_base + '.tmp.tiff'
-        fn_out = fn_base + '.jpg'
+        fn_dir, fn_filename = os.path.split(fn)
+        dest_dir = opts.destination or fn_dir
+        fn_base = fn_filename.rsplit('.', 1)[0]
+        fn_tiff = os.path.join(dest_dir, fn_base + '.tmp.tiff')
+        fn_out = os.path.join(dest_dir, fn_base + '.jpg')
         print 'tiff extract:', fn, '->', fn_tiff
         subprocess.check_call(['tiffutil', '-extract', '0', fn, '-out', fn_tiff])
         print 'convert:', fn_tiff, '->', fn_out
         subprocess.check_call(['convert', fn_tiff] + convert_args + [fn_out])
         os.unlink(fn_tiff)
         if opts.move:
-            fn_dir, fn_filename = os.path.split(fn)
-            fn_move = os.path.join(fn_dir, opts.move, fn_filename)
+            fn_move = os.path.join(dest_dir, opts.move, fn_filename)
             print 'move:', fn, '->', fn_move
             os.rename(fn, fn_move)
 
