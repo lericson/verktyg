@@ -13,7 +13,10 @@
  *
  *   cat <<JSON >spec.json
  *   {"conversions": [{"input": "img.tiff",
- *                     "output": "img.png",
+ *                     "output": "img.jpg",
+ *                     "move": "complete/img.tiff",
+ *                     "type": "public.jpeg",
+ *                     "compression": 0.8,
  *                     "longestSide": 2048}]}
  *   JSON
  *   convert-images <spec.json
@@ -58,7 +61,7 @@ int main(void) {
     NSError *error = nil;
     NSDictionary *opts = [NSJSONSerialization JSONObjectWithData:[[NSFileHandle fileHandleWithStandardInput] readDataToEndOfFile] options:0 error:&error];
 
-    if (error) {
+    if (error != nil) {
         NSLog(@"error during JSON deserialization: %@", error);
         return 1;
     }
@@ -79,12 +82,27 @@ BOOL convert(NSDictionary *conversion) {
     NSString *outputFile = [conversion objectForKey:@"output"];
     NSNumber *longestSide = [conversion objectForKey:@"longestSide"];
     NSNumber *scaleFactor = nil;
+    NSURL    *url = [NSURL fileURLWithPath:inputFile isDirectory:NO];
 
-    NSURL *url = [NSURL fileURLWithPath:inputFile isDirectory:NO];
-    CIImage *im = [CIImage imageWithContentsOfURL:url];
+    CGImageSourceRef imgSrc = CGImageSourceCreateWithURL((CFURLRef)url, NULL);
+    if (imgSrc == NULL) {
+        NSLog(@"Load failed: %@", inputFile);
+        return NO;
+    }
+
+    CIImage *im = [CIImage imageWithCGImage:CGImageSourceCreateImageAtIndex(imgSrc, 0, NULL)];
+    if (im == nil) {
+        NSLog(@"Load failed: %@", inputFile);
+        return NO;
+    }
+
+    NSDictionary *imgProps = [NSDictionary dictionary];
+    imgProps = (NSDictionary *)CGImageSourceCopyPropertiesAtIndex(imgSrc, 0, NULL);
+
     NSLog(@"Loaded %@", inputFile);
+    CFRelease(imgSrc);
 
-    if (longestSide) {
+    if (longestSide != nil) {
         scaleFactor = [NSNumber numberWithFloat:MIN([longestSide floatValue] / (float)([im extent].size.width),
                                                     [longestSide floatValue] / (float)([im extent].size.height))];
     }
@@ -95,15 +113,34 @@ BOOL convert(NSDictionary *conversion) {
         [scaleTransformFilter setValue:scaleFactor forKey:@"inputScale"];
         [scaleTransformFilter setValue:im forKey:@"inputImage"];
         im = [scaleTransformFilter valueForKey:@"outputImage"];
-        NSLog(@"Image scaled to %u%%", (unsigned int)([scaleFactor floatValue] * 100.0f));
+        NSLog(@"Image size scaled %u%%", (unsigned int)([scaleFactor floatValue] * 100.0f));
     }
 
-    NSLog(@"Converting to PNG");
-    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithCIImage:im];
-    NSDictionary *props = [NSDictionary dictionaryWithObjectsAndKeys:nil];
-    NSData *data = [bitmap representationUsingType:NSPNGFileType
-                                        properties:props];
+    NSString *uti = [conversion objectForKey:@"type"];
+    NSLog(@"Converting to %@", uti);
+    CGImageDestinationRef idst = CGImageDestinationCreateWithURL((CFURLRef)[NSURL fileURLWithPath:outputFile], (CFStringRef)uti, 1, NULL);
+    if (idst == NULL) {
+        return 0;
+    }
+
+    NSBitmapImageRep *bitmap = [[[NSBitmapImageRep alloc] initWithCIImage:im] autorelease];
+    CGImageDestinationAddImage(idst, [bitmap CGImage], (CFDictionaryRef)imgProps);
 
     NSLog(@"Writing %@", outputFile);
-    return [data writeToFile:outputFile atomically:NO];
+    bool ok = CGImageDestinationFinalize(idst);
+    CFRelease(idst);
+
+    NSString *move = [conversion objectForKey:@"move"];
+    if (move != nil) {
+        NSFileManager *fm = [[[NSFileManager alloc] init] autorelease];
+        NSError *error = nil;
+        [fm moveItemAtPath:inputFile toPath:move error:&error];
+        if (error != nil) {
+            NSLog(@"move item error: %@", error);
+            return NO;
+        }
+        NSLog(@"Moved original to %@", move);
+    }
+
+    return (BOOL)ok;
 }
