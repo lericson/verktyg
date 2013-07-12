@@ -1,0 +1,2 @@
+#!/bin/sh
+exec ping "$@" "$(default-gateways -f inet | head -1)"
