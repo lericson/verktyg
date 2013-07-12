@@ -2,37 +2,61 @@
 
 import os
 import sys
+import json
 import optparse
+import StringIO
 import subprocess
+from contextlib import contextmanager
 
 parser = optparse.OptionParser()
 parser.add_option('--scale')
 parser.add_option('--move')
 parser.add_option('--destination')
 
+@contextmanager
+def pipes():
+    rd, wr = os.pipe()
+    rdfp = os.fdopen(rd, 'r')
+    wrfp = os.fdopen(wr, 'w')
+    try:
+        yield rdfp, wrfp
+    finally:
+        wrfp.close()
+        rdfp.close()
+
 def main(args=sys.argv[1:]):
     opts, args = parser.parse_args()
-    convert_args = []
-    if opts.scale:
-        convert_args.extend(('-scale', opts.scale))
+
     if opts.move:
         if not os.path.exists(opts.move):
             os.mkdir(opts.move)
-    for fn in args:
-        fn_dir, fn_filename = os.path.split(fn)
-        dest_dir = opts.destination or fn_dir
-        fn_base = fn_filename.rsplit('.', 1)[0]
-        fn_tiff = os.path.join(dest_dir, fn_base + '.tmp.tiff')
-        fn_out = os.path.join(dest_dir, fn_base + '.jpg')
-        print 'tiff extract:', fn, '->', fn_tiff
-        subprocess.check_call(['tiffutil', '-extract', '0', fn, '-out', fn_tiff])
-        print 'convert:', fn_tiff, '->', fn_out
-        subprocess.check_call(['convert', fn_tiff] + convert_args + [fn_out])
-        os.unlink(fn_tiff)
-        if opts.move:
-            fn_move = os.path.join(dest_dir, opts.move, fn_filename)
-            print 'move:', fn, '->', fn_move
-            os.rename(fn, fn_move)
+
+    with pipes() as (rfp, wfp):
+        wfp.write('{"conversions": [\n');
+        precomma = False
+        for fn in args:
+            fn_dir, fn_filename = os.path.split(fn)
+            dest_dir = opts.destination or fn_dir
+            fn_base = fn_filename.rsplit('.', 1)[0]
+            fn_out = os.path.join(dest_dir, fn_base + '.jpg')
+
+            conversion = {'input': fn,
+                          'output': fn_out,
+                          'type': 'public.jpeg',
+                          'compression': 0.8}
+            if opts.scale:
+                conversion['longestSide'] = int(opts.scale)
+            if opts.move:
+                conversion['move'] = os.path.join(str(opts.move), fn_filename)
+
+            if precomma:
+                wfp.write(',\n')
+            else:
+                precomma = True
+            json.dump(conversion, wfp)
+        wfp.write(']}\n');
+        wfp.close()
+        subprocess.check_call(['convert-images'], stdout=sys.stdout, stderr=sys.stderr, stdin=rfp)
 
 if __name__ == "__main__":
     main()
