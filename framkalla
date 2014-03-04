@@ -11,6 +11,7 @@ from contextlib import contextmanager
 parser = optparse.OptionParser()
 parser.add_option('--scale')
 parser.add_option('--move')
+parser.add_option('--trash')
 parser.add_option('--destination')
 
 @contextmanager
@@ -27,6 +28,8 @@ def pipes():
 def main(args=sys.argv[1:]):
     opts, args = parser.parse_args()
 
+    if opts.move and opts.trash:
+        parser.error('either --move or --trash')
     if opts.move:
         if not os.path.exists(opts.move):
             os.mkdir(opts.move)
@@ -48,6 +51,8 @@ def main(args=sys.argv[1:]):
                 conversion['longestSide'] = int(opts.scale)
             if opts.move:
                 conversion['move'] = os.path.join(str(opts.move), fn_filename)
+            if opts.trash:
+                conversion['move'] = os.path.join(os.environ['HOME'], '.Trash')
 
             if precomma:
                 wfp.write(',\n')
@@ -56,7 +61,8 @@ def main(args=sys.argv[1:]):
             json.dump(conversion, wfp)
         wfp.write(']}\n');
         wfp.close()
-        subprocess.check_call(['convert-images'], stdout=sys.stdout, stderr=sys.stderr, stdin=rfp)
+        os.dup2(rfp.fileno(), sys.stdin.fileno())
+        os.execvp('convert-images', ('convert-images',))
 
 if __name__ == "__main__":
     main()
