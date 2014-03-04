@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+# find lots of code
+# print to screen slowly
+
+import os
+import sys
+import pygments
+import random
+from time import sleep
+
+from pygments.lexers import guess_lexer_for_filename
+from pygments.formatters.terminal256 import Terminal256Formatter
+
+def find_files(root='.'):
+    for dn, sns, fns in os.walk(root):
+        for fn in fns:
+            yield os.path.join(dn, fn)
+
+class SlowPrintingWrapper(object):
+    def __init__(self, fp, delay):
+        self.fp = fp
+        self.delay = delay
+
+    def write(self, data):
+        for b in data:
+            self.fp.write(b)
+            self.fp.flush()
+            sleep(self.delay + (0.5 - random.random())*self.delay)
+
+if __name__ == "__main__":
+    out = SlowPrintingWrapper(sys.stdout, 0.035)
+    fmt = Terminal256Formatter()
+    for fn in find_files():
+        heading = lambda t: t + '\n' + '='*len(t) + '\n\n'
+        with open(fn) as fp:
+            contents = fp.read()
+        try:
+            lexer = guess_lexer_for_filename(fn, contents)
+        except pygments.util.ClassNotFound:
+            out.write(heading(fn) + contents)
+        else:
+            out.write(heading(fn + ' (' + lexer.name + ')'))
+            pygments.highlight(contents, lexer, fmt, outfile=out)
+        out.write('\n')

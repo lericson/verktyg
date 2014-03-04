@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+"works like shit"
+
+import os
+import sys
+
+import fsevents
+
+def main(args=sys.argv[1:]):
+    obs = fsevents.Observer()
+    def callback(ev):
+        sys.exit(0)
+    if not all(map(os.path.isdir, args)):
+        raise SystemExit("only dirs plz")
+    stream = fsevents.Stream(callback, file_events=True, *args)
+    obs.schedule(stream)
+    obs.run()
+
+if __name__ == "__main__":
+    main()

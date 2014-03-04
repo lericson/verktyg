@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import optparse
+
+def lets(word):
+    d = {}
+    for let in word:
+        c = d[let] = d.setdefault(let, 0) + 1
+        yield (let, c)
+
+def words(match, wordlist='/usr/share/dict/words'):
+    matchlets = frozenset(lets(match))
+    with open(wordlist) as fp:
+        for line in fp:
+            word = line.strip()
+            wordlets = frozenset(lets(word))
+            if matchlets >= wordlets:
+                yield word
+
+def main(args=sys.argv[1:]):
+    op = optparse.OptionParser()
+    op.add_option('-l', '--length', type=int)
+    (opts, args) = op.parse_args(args)
+    for letters in args:
+        for word in words(letters):
+            if not (bool(opts.length) ^ (opts.length == len(word))):
+                print word
+
+if __name__ == "__main__":
+    main()

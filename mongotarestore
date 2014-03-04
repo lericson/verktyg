@@ -1,0 +1,9 @@
+#!/bin/sh
+# Restore a MongoDB dump using tar
+
+TARF="$1"
+shift
+TMPDIR="$(mktemp -d -t mongotarestore)"
+trap "rm -rf $TMPDIR" EXIT
+cd "$DIR"
+tar -xvf "$TARF" && mongorestore "$@"

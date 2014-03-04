@@ -1,0 +1,5 @@
+#!/bin/sh
+
+infodir="$(git rev-parse --git-dir)/info"
+mkdir -p "$infodir"
+exec "${EDITOR:-vi}" "$infodir"/exclude

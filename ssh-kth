@@ -1,0 +1,2 @@
+#!/bin/sh
+exec ssh ludv@u-shell.csc.kth.se -K "$@"

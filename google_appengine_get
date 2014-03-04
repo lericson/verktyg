@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+FN="google_appengine_${1:-1.8.6}.zip"
+URL="http://googleappengine.googlecode.com/files/$FN"
+
+wget "$URL"
+unzip "$FN"
+rm -i "$FN"
