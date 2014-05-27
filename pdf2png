@@ -1,6 +1,4 @@
 #!/bin/sh
 INFN="$1"
-OUTFN="${2:-$1.png}"
 shift
-shift
-exec convert -density 150 -quality 85 "$INFN" -scale 768 +dither -colors 32 "$OUTFN" "$@"
+exec convert -density 150 -quality 85 "$INFN" -monochrome -scale 768 "$@" "$INFN.png"
