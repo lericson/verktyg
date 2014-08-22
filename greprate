@@ -7,14 +7,24 @@ import time
 
 interval = 1.0
 
+def greprate(f, grep):
+    t0 = time.clock()
+    while True:
+        time.sleep(interval)
+        chunk = os.read(f.fileno(), 1<<20)
+        t1 = time.clock()
+        print chunk.count(grep) / (t1 - t0), 'matches/second'
+        t0 = t1
+
 def main(args=sys.argv[1:]):
     grep, fn = args
-    with open(fn) as f:
-        f.seek(0, 2)
-        while True:
-            chunk = os.read(f.fileno(), 1<<20)
-            time.sleep(interval)
-            print chunk.count(grep) / interval, 'matches/second'
+
+    if fn == '-':
+        greprate(sys.stdin, grep)
+    else:
+        with open(fn) as f:
+            f.seek(0, 2)
+            greprate(f, grep)
 
 if __name__ == "__main__":
     main()
