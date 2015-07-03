@@ -2,6 +2,5 @@
 
 # git-flake8: run flake8 on Python files that have been changed or aren't added
 
-PYTHON=python
-[ -n "$VIRTUALENV" ] && PYTHON="$VIRTUALENV/bin/python"
+PYTHON="/usr/bin/env python"
 exec git ls-files --modified --others --exclude-standard -z '*.py' | xargs -0 "$PYTHON" -m flake8
