@@ -1,0 +1,2 @@
+#!/bin/sh
+exec openssl enc -aes-256-cbc -d -out "${1/.enc/}" -in "${1/.enc/}".enc

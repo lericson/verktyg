@@ -1,4 +1,4 @@
 #!/bin/sh
 
-hdiutil compact -batteryallowed "$1" || { echo Press key to continue attaching; read; }
-hdiutil attach "$1"
+hdiutil compact -batteryallowed "$@" || { echo Press key to continue attaching; read; }
+hdiutil attach "$@"

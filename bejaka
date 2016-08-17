@@ -5,22 +5,23 @@ HOST="$2"
 SESS="$3"
 
 function usage() {
-    exec >&2
-    echo "usage: $(basename $0) <mode> <host> [session]"
-    echo 'resumes or creates <session> on <host>'
-    echo '<mode> may be `tmux` or `screen`'
+  exec >&2
+  echo "usage: $(basename $0) <mode> <host> [session]"
+  echo 'resumes or creates <session> on <host>'
+  echo '<mode> may be `tmux`, `tmux-it2` or `screen`'
 }
 
 SSHARGS=( "ssh" "-t" "${HOST}" )
 
 case "${MODE}" in
-    -h|--help) usage && exit;;
-    screen) exec ${SSHARGS[@]} screen -U -RR -D "${SESS}"
-            ;;
-    tmux)   test -n "${SESS}" \
-              && exec ${SSHARGS[@]} "tmux -u attach -t '${SESS}' || tmux -u new -s '${SESS}'" \
-              || exec ${SSHARGS[@]} "tmux -u attach || tmux -u new"
-            ;;
-    *)      echo "$0: ${MODE} is not a known mode" >&2
-            exit 1
+  -h|--help) usage && exit;;
+  screen) exec ${SSHARGS[@]} screen -U -RR -D "${SESS}"
+          ;;
+  tmux*)  test "${MODE}" == "tmux-it2" && CC=-CC
+          test -n "${SESS}" \
+           && exec ${SSHARGS[@]} "tmux -u ${CC} attach -t '${SESS}' || tmux -u ${CC} new -s '${SESS}'" \
+           || exec ${SSHARGS[@]} "tmux -u ${CC} attach || tmux -u ${CC} new"
+          ;;
+  *)      echo "$0: ${MODE} is not a known mode" >&2
+          exit 1
 esac

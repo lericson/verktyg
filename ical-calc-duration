@@ -1,7 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
+import argparse
 import datetime
+import operator
+from itertools import starmap
+
+time_format = '%H:%M'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--sum', default=False, action='store_true',
+                    help='output sum of all durations')
 
 def filter_scheduled(it, prefix="Scheduled: "):
     for line in it:
@@ -10,17 +19,24 @@ def filter_scheduled(it, prefix="Scheduled: "):
 
 def parse_datetimes(line):
     lead, start_txt, to, stop_txt = line.strip().rsplit(' ', 3)
-    start = datetime.datetime.strptime(start_txt, "%H:%M:%S")
-    stop = datetime.datetime.strptime(stop_txt, "%H:%M:%S")
+    start = datetime.datetime.strptime(start_txt, time_format)
+    stop = datetime.datetime.strptime(stop_txt, time_format)
     stop = start.replace(hour=stop.hour, minute=stop.minute, second=stop.second)
-    return start, stop
+    return stop, start
 
-def main(args=sys.argv[1:]):
-    for line in filter_scheduled(sys.stdin):
-        start, stop = parse_datetimes(line)
-        delta = stop - start
-        print '{hours:d}h{minutes:02d}m'.format(hours=(delta.seconds // 3600),
-                                          minutes=((delta.seconds % 3600) / 60))
+def format_timedelta(diff):
+    return '{hours:d}h{minutes:02d}m'.format(hours=(diff.seconds // 3600),
+                                             minutes=((diff.seconds % 3600) // 60))
+
+def main():
+    args = parser.parse_args()
+    datetime_pairs = map(parse_datetimes, filter_scheduled(sys.stdin))
+    diffs = starmap(operator.sub, datetime_pairs)
+
+    if args.sum:
+        print(format_timedelta(sum(diffs, datetime.timedelta())))
+    else:
+        list(map(print, map(format_timedelta, diffs)))
 
 if __name__ == "__main__":
     main()

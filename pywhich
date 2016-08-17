@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function, unicode_literals
 
@@ -8,9 +8,9 @@ from os import path
 def find_module(modname):
     # XXX Huge side-effect: the module is run.
     fn = __import__(modname).__file__
-    if fn.endswith(b".pyc"):
-        fn = fn[:-4] + b".py"
-    if fn.endswith(b"/__init__.py"):
+    if fn.endswith(".pyc"):
+        fn = fn[:-4] + ".py"
+    if fn.endswith("/__init__.py"):
         fn = path.dirname(fn)
     return fn
 

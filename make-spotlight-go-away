@@ -1,0 +1,10 @@
+#!/bin/bash
+set -ex
+cd /System/Library/CoreServices/Spotlight.app/Contents/MacOS
+T="${TMPDIR:-${TMP:-/tmp}}/Spotlight.bak.$$"
+echo "backup at $T"
+cp Spotlight "$T"
+perl -pi -e 's|(\x00\x00\x00\x00\x00\x00)\x42\x40|$1\x00\x00|s' Spotlight
+cmp -l Spotlight "$T" && exit || true
+codesign -f -s - Spotlight
+killall Spotlight

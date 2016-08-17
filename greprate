@@ -8,11 +8,11 @@ import time
 interval = 1.0
 
 def greprate(f, grep):
-    t0 = time.clock()
+    t0 = time.time()
     while True:
         time.sleep(interval)
         chunk = os.read(f.fileno(), 1<<20)
-        t1 = time.clock()
+        t1 = time.time()
         print chunk.count(grep) / (t1 - t0), 'matches/second'
         t0 = t1
 
