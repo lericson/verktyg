@@ -1,16 +1,14 @@
-" Great .vimrc of Steel and Thunder
-" 
-" Adapted mostly for Mac OS X.
-"
-" :Author: Ludvig Ericson <ludvig@lericson.se>
-
 " {{{ Settings
 
 " The colorscheme
-colorscheme solarized
+"colorscheme solarized
+colorscheme Tomorrow
 
 " Who cares about vi?
 set nocompatible
+
+" Modelines are good
+set modeline
 
 " Hidden buffers <3
 set hidden
@@ -21,8 +19,8 @@ set et ts=8 sw=4 sts=4
 " Show cursor position at all time
 set ruler
 
-" Auto indent after a {
-set autoindent
+" Don't auto indent
+set noautoindent
 
 " Show matching brackets for 1 tenth of a second
 set showmatch matchtime=1
@@ -45,8 +43,11 @@ set foldclose=
 " Use incremental searching
 set incsearch
 
-" No hilighted search
-set nohlsearch
+" Make /foo case-isens, but /Foo case-sens
+set smartcase ignorecase
+
+" Hilighted search
+set hlsearch
 
 " Jump N lines when running out of the screen
 set scrolljump=1
@@ -125,8 +126,8 @@ noremap <D-9> 9gt
 
 " {{{ Misc keybinds
 
-" Save and run file with Python
-noremap <C-o> :w!<CR>:!python %<CR>
+" Save and make
+noremap <C-o> :make<CR>
 inoremap <C-o> <ESC><C-o>a
 
 " Remove hilight
@@ -160,11 +161,30 @@ command! WQ wq
 
 " {{{ Background light/dark
 if has("gui_running")
-    set background=light
+    "set background=light
     set fuoptions=maxvert,maxhorz
+    "set guifont=Menlo\ Regular:h14
+    "set guifont=Source\ Code\ Pro:h14
+    set macligatures guifont=Hasklig:h14
 else
-    set background=dark
+    "set background=dark
 endif
+" }}}
+
+" {{{ Restore cursor position
+
+function! ResCur()
+  if line("'\"") <= line("$")
+    normal! g`"
+    return 1
+  endif
+endfunction
+
+augroup resCur
+  autocmd!
+  autocmd BufWinEnter * call ResCur()
+augroup END
+
 " }}}
 
 " {{{ vim -b: .bin editing
@@ -187,20 +207,77 @@ iab pydefmain def main(args=sys.argv[1:]):
 iab pyifmain if __name__ == "__main__":
 iab pydoct <tab>import doctest<cr>doctest.testmod()
 iab improt import
-iab pylogger logger = logging.getLogger(__name__)
+iab pylog log = logging.getLogger(__name__)
+iab debuglog __import__("logging").warn
 iab pypdb __import__("pdb").set_trace()
 iab pyerr print >>__import__("sys").stderr,
+iab py23 from __future__ import print_function, unicode_literals
+iab htmltmpl <!doctype html><cr><html><cr><cr>  <head><cr>    <title></title><cr>  </head><cr><cr>  <body><cr>  </body><cr><cr></html>
 " }}}
 
-" {{{ REMOVE ME: Wrap visual selections with chars
-"
-"vnoremap ( "zdi(<C-R>z)<ESC>
-"vnoremap { "zdi{<C-R>z}<ESC>
-"vnoremap [ "zdi[<C-R>z]<ESC>
-"vnoremap ' "zdi'<C-R>z'<ESC>
-"vnoremap " "zdi"<C-R>z"<ESC>
-"
-" }}} Wrap visual selections with chars
+" {{{ :Xbit
+function! SetExecutableBit()
+  let fname = expand("%:p")
+  checktime
+  execute "au FileChangedShell " . fname . " :echo"
+  silent !chmod a+x %
+  checktime
+  execute "au! FileChangedShell " . fname
+endfunction
+command! Xbit call SetExecutableBit()
+" }}}
+
+" {{{ Wildmenu
+
+set wildmenu
+set wildmode=list:longest
+
+set wildignore+=.hg,.git,.svn                    " Version control
+set wildignore+=*.aux,*.out,*.toc                " LaTeX intermediate files
+set wildignore+=*.spl                            " compiled spelling word lists
+set wildignore+=*.sw?                            " Vim swap files
+set wildignore+=*.DS_Store                       " OSX bullshit
+
+set wildignore+=*.pyc,*.luac                     " Byte code caches
+
+" }}}
+
+" Hilight bad whitespace
+fun! HilightBadWhitespace()
+  /\ \+\t\|\s\+$
+endfun
+command! WhitespaceFix call HilightBadWhitespace()
+
+" {{{ :PY -- run Python file if pyflakes passes
+fun! RunPythonFlakes(etc)
+  "!pyflakes % && echo %: syntax ok
+  execute '!pyflakes % && python %' a:etc
+endfun
+command! -nargs=? PY call RunPythonFlakes(<q-args>)
+" }}}
+
+" REMOVE ME: Fix for shell issues with MacVim, fixed in snapshot #60
+if has("gui_running") | set sh=/bin/sh | endif
+
+" Blowfish2 for :X
+set cm=blowfish2
 
 " 2-space indent in HTML/CSS/JS.
-autocmd BufEnter * if &filetype == "html" || &filetype == "htmldjango" || &filetype == "htmljinja" || &filetype == "css" || &filetype == "javascript" | setlocal ts=2 sw=2 sts=2 | endif
+autocmd BufEnter * if &filetype == "coffee" || &filetype == "php" || &filetype == "html" || &filetype == "htmldjango" || &filetype == "htmljinja" || &filetype == "css" || &filetype == "javascript" | setlocal ts=2 sw=2 sts=2 | endif
+
+autocmd BufEnter ~/devel/sap/skolpytt/* setlocal sw=4 sts=4 expandtab
+
+" Pathogen
+execute pathogen#infect()
+
+" Flake8 on save
+autocmd BufWritePost /Volumes/fem-viskande-apor/*.py call Flake8()
+let g:flake8_cmd=$HOME . "/devel/binutils/flake8"
+let g:flake8_show_in_gutter=1
+let g:flake8_show_in_gutter=1
+let g:flake8_show_quickfix=0
+let g:flake8_error_marker="E"
+let g:flake8_warning_marker="W"
+let g:flake8_pyflake_marker="F"
+let g:flake8_complexity_marker="C"
+let g:flake8_naming_marker="N"
