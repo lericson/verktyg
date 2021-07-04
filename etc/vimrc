@@ -2,7 +2,7 @@
 
 " The colorscheme
 "colorscheme solarized
-colorscheme Tomorrow
+"colorscheme Tomorrow
 
 " Who cares about vi?
 set nocompatible
@@ -16,11 +16,14 @@ set hidden
 " PEP 8
 set et ts=8 sw=4 sts=4
 
+" Set tilde with motion object
+set tildeop
+
 " Show cursor position at all time
 set ruler
 
-" Don't auto indent
-set noautoindent
+" Do auto indent
+set autoindent
 
 " Show matching brackets for 1 tenth of a second
 set showmatch matchtime=1
@@ -35,10 +38,12 @@ set nowrap
 set number
 
 " Fold by markers
-set foldmethod=marker foldnestmax=1
-
+"set foldmethod=marker foldnestmax=1
 " Do not autoclose folds when moving out of them
-set foldclose=
+"set foldclose=
+
+" Fold by indent, but open all folds by default
+set foldmethod=indent foldnestmax=20 foldlevel=100
 
 " Use incremental searching
 set incsearch
@@ -49,27 +54,37 @@ set smartcase ignorecase
 " Hilighted search
 set hlsearch
 
-" Jump N lines when running out of the screen
-set scrolljump=1
+" Scroll follows cursor one-to-one, keep eight lines of margin
+set scrolljump=1 scrolloff=8
 
-" Indicate jump out of the screen when N lines before end of the screen
-set scrolloff=10
+" Side-scroll also follows one-to-one, keep 20 columns of margin
+set sidescroll=1 sidescrolloff=20
 
 " How to behave with automated formatting (like gq)
 set formatoptions=qroct
 
-" No join spaces when using J etc
+" No _double_ join spaces after punctuation when using J et al.
 set nojoinspaces
 
 " Allow backspacing over anything
 set backspace=start,eol,indent
 
 " Set paste toggle to CTRL+p
-set pastetoggle=<C-p>
+"set pastetoggle=<C-p>
 
 " Syntax hilighting synchronization options
 syn sync minlines=500 maxlines=3000
 syn on
+set synmaxcol=4096
+
+" Fast tty
+set ttyfast ttyscroll=1
+let g:tex_no_error=1
+let g:tex_fast='M'
+
+" Listings (the list command)
+set showbreak=…\ 
+set list listchars=tab:▸\ ,eol:¬,nbsp:␣,extends:⟩,precedes:⟨
 
 " .viminfo settings (mostly defaults)
 set viminfo=%100,'100,/100,h,\"500,:100,n~/.viminfo
@@ -83,6 +98,10 @@ set noswapfile
 " Enable ft
 filetype on            " enables filetype detection
 filetype plugin on     " enables filetype specific plugins
+
+" Leader
+let mapleader=","
+let maplocalleader=","
 
 " }}} Settings
 
@@ -130,26 +149,19 @@ noremap <D-9> 9gt
 noremap <C-o> :make<CR>
 inoremap <C-o> <ESC><C-o>a
 
-" Remove hilight
-map gf :noh<CR>
-
 " }}}
 
 " {{{ Autocompletion using tab
 
-" This function determines whether we are on the start of the line text
-" (if so, tab adds indention) or if we want to try to autocomplete.
-function! InsertTabWrapper()
-    let col = col('.') - 1
-    if !col || getline('.')[col - 1] !~ '\k'
-        return "\<tab>"
+function! TabOrComplete(shift, compl)
+    if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
+        return a:shift
     else
-        return "\<c-p>"
+        return a:compl
     endif
 endfunction
-
-" Remap the tab key to select action with InsertTabWrapper
-inoremap <tab> <c-r>=InsertTabWrapper()<cr>
+inoremap <expr>   <tab> TabOrComplete('<tab>', '<c-n>')
+inoremap <expr> <s-tab> TabOrComplete('<bs>',  '<c-p>')
 
 " }}}
 
@@ -161,11 +173,12 @@ command! WQ wq
 
 " {{{ Background light/dark
 if has("gui_running")
-    "set background=light
+    set background=dark
     set fuoptions=maxvert,maxhorz
     "set guifont=Menlo\ Regular:h14
     "set guifont=Source\ Code\ Pro:h14
     set macligatures guifont=Hasklig:h14
+    set guitablabel=%N.\ %t\ %M
 else
     "set background=dark
 endif
@@ -213,6 +226,8 @@ iab pypdb __import__("pdb").set_trace()
 iab pyerr print >>__import__("sys").stderr,
 iab py23 from __future__ import print_function, unicode_literals
 iab htmltmpl <!doctype html><cr><html><cr><cr>  <head><cr>    <title></title><cr>  </head><cr><cr>  <body><cr>  </body><cr><cr></html>
+iab texfig \begin{figure}[ht]<cr>\centering\includegraphics[width=0.95\textwidth]{foo}<cr>\caption{My figure}<cr>\label{fig:foo}<cr>\end{figure}
+iab texlist \begin{itemize}<cr>\end{itemize}<up>
 " }}}
 
 " {{{ :Xbit
@@ -251,33 +266,67 @@ command! WhitespaceFix call HilightBadWhitespace()
 " {{{ :PY -- run Python file if pyflakes passes
 fun! RunPythonFlakes(etc)
   "!pyflakes % && echo %: syntax ok
-  execute '!pyflakes % && python %' a:etc
+  execute '!pyflakes % && python3 %' a:etc
 endfun
 command! -nargs=? PY call RunPythonFlakes(<q-args>)
 " }}}
-
-" REMOVE ME: Fix for shell issues with MacVim, fixed in snapshot #60
-if has("gui_running") | set sh=/bin/sh | endif
 
 " Blowfish2 for :X
 set cm=blowfish2
 
 " 2-space indent in HTML/CSS/JS.
-autocmd BufEnter * if &filetype == "coffee" || &filetype == "php" || &filetype == "html" || &filetype == "htmldjango" || &filetype == "htmljinja" || &filetype == "css" || &filetype == "javascript" | setlocal ts=2 sw=2 sts=2 | endif
+augroup SpaceMe
+  autocmd!
+  autocmd BufEnter * if &filetype == "coffee" || &filetype == "php" || &filetype == "html" || &filetype == "htmldjango" || &filetype == "htmljinja" || &filetype == "css" || &filetype == "javascript" | setlocal ts=2 sw=2 sts=2 | endif
+  autocmd BufEnter ~/devel/sap/skolpytt/* setlocal sw=4 sts=4 expandtab
+augroup END
 
-autocmd BufEnter ~/devel/sap/skolpytt/* setlocal sw=4 sts=4 expandtab
+" TeX Sync with Skim
+fun! SkimAt(texfn, pdffn, ln)
+    if ! filereadable(a:pdffn)
+        echo 'File ' . a:pdffn . ' does not exist, let b:pdffile=...'
+    else
+        echo 'Skim jump to line ' . a:ln . ' of ' . a:pdffn
+        execute 'silent !/Applications/Skim.app/Contents/SharedSupport/displayline -g ' . shellescape(a:ln) . ' ' . shellescape(a:pdffn) . ' ' . a:texfn
+    endif
+endfun
+command! SkimHere call SkimAt(expand('%'), get(b:, 'pdffile', expand('%<').'.pdf'), line('.'))
+noremap <localleader>f :SkimHere<cr>
 
-" Pathogen
+" Pathogen {{{
 execute pathogen#infect()
+"}}}
 
 " Flake8 on save
-autocmd BufWritePost /Volumes/fem-viskande-apor/*.py call Flake8()
-let g:flake8_cmd=$HOME . "/devel/binutils/flake8"
-let g:flake8_show_in_gutter=1
-let g:flake8_show_in_gutter=1
-let g:flake8_show_quickfix=0
-let g:flake8_error_marker="E"
-let g:flake8_warning_marker="W"
-let g:flake8_pyflake_marker="F"
-let g:flake8_complexity_marker="C"
-let g:flake8_naming_marker="N"
+"autocmd BufWritePost /Volumes/fem-viskande-apor/*.py call Flake8()
+"let g:flake8_cmd=$HOME . "/devel/binutils/flake8"
+"let g:flake8_show_in_gutter=1
+"let g:flake8_show_in_gutter=1
+"let g:flake8_show_quickfix=0
+"let g:flake8_error_marker="E"
+"let g:flake8_warning_marker="W"
+"let g:flake8_pyflake_marker="F"
+"let g:flake8_complexity_marker="C"
+"let g:flake8_naming_marker="N"
+
+" ALE
+let g:ale_lint_on_save = 1
+let g:ale_lint_on_enter = 0
+let g:ale_lint_on_text_changed = 'never'
+let g:ale_sign_column_always = 1
+let g:ale_sign_warning = 'W'
+let g:ale_sign_error = 'E'
+let g:ale_python_flake8_args = '--ignore=C,E111,E114,E22,E201,E241,E265,E272,E3,E501,E731'
+let g:ale_python_pylint_executable = ''
+
+fun! ALEClearBuffer(buffer)
+  if get(g:, 'ale_enabled') && has_key(get(g:, 'ale_buffer_info', {}), a:buffer)
+    call ale#engine#SetResults(a:buffer, [])
+    call ale#engine#Cleanup(a:buffer)
+  endif
+endfun
+
+augroup UnALE
+  autocmd!
+  autocmd TextChanged,TextChangedI,InsertEnter,InsertLeave * call ALEClearBuffer(bufnr('%'))
+augroup END
