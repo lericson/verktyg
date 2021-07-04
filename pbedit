@@ -6,6 +6,6 @@
 
 FN=`mktemp pbedit.XXXXXXX`
 trap "rm $FN" EXIT
-pbpaste "$@" >$FN
-"${EDITOR:-vim}" "$FN" || exit
-pbcopy "$@" <$FN
+pbpastim "$@" >$FN || exit 1
+"${EDITOR:-vim}" "$FN" || exit 1
+exec pbcopim <$FN

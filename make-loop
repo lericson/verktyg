@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+out="$1"
+shift
+while when_changed "$@"; do
+  if make $out </dev/null; then
+    osascript -e 'display notification "'"$out"'" with title "Build Finished" sound name "Bottle"'
+  else
+    osascript -e 'display notification "'"$out"'" with title "Build Failed: '$?'" sound name "Sosumi"'
+  fi
+done

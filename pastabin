@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 from __future__ import print_function, unicode_literals
 
@@ -20,7 +20,11 @@ def paste(lexer, content):
 def main():
     content = sys.stdin.read().decode("utf-8").encode("utf-8")
     lexer = "".join(sys.argv[1:]) or "text"
-    print(paste(lexer, content).url)
+    resp = paste(lexer, content)
+    if resp:
+        print(resp.url)
+    else:
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     main()

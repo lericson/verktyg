@@ -1,0 +1,24 @@
+#!/bin/bash
+
+IFS=$'\n'
+SCHEME=https
+LINKHOST=bsg.lericson.se
+SCPHOST=moln.lericson.se
+SCPDIR=htdocs
+
+while getopts "n:" opt; do
+    case "$opt" in
+      n) NAME="$OPTARG";;
+      i) SCHEME="http";;
+      ?) echo "usage: $0 -n name file | $0 file1 [file2 ...]" && exit 1
+    esac
+done
+
+shift $((OPTIND-1))
+
+for F; do
+    [[ -z "$NAME" ]] && NAME="$(basename "$F")"
+    printf "%s://%s/%s\n" "$SCHEME" "$LINKHOST" "$NAME"
+    scp -q "$F" "$SCPHOST:$SCPDIR/'$NAME'"
+    unset NAME
+done

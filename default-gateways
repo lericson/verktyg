@@ -1,4 +1,4 @@
 #!/bin/sh
 # print default gateway addresses
 # protip: -f inet only gives ipv4 addresses
-exec netstat -nr "$@" | awk 'BEGIN { FS=" " } $1 == "default" { print $2 }'
+exec netstat -nr "$@" | awk 'BEGIN { FS=" " } $1 == "default" && ($6 ~ /en.*/ || $4 ~ /en.*/) { print $2 }'

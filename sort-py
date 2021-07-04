@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""/usr/bin/sort with Python expressions
+
+For example, to sort some text on line length:
+
+    sort-py len <myfile >outfile
+
+"""
+
+
+import sys
+
+
+def input_iter(args):
+    if len(args) == 0:
+        args = ['-']
+
+    for arg in args:
+        if arg == '-':
+            yield from sys.stdin
+        else:
+            with open(arg) as fp:
+                yield from fp
+
+
+def main(args=sys.argv[1:]):
+    f = eval(args[0])
+    lines = list(input_iter(args[1:]))
+    lines.sort(key=f)
+    for line in lines:
+        print(line, end="")
+
+
+if __name__ == "__main__":
+    main()

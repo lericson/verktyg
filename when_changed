@@ -1,20 +1,69 @@
 #!/usr/bin/env python
-"works like shit"
+"""Exits when a file or directory is changed.
+
+Watches for changes in any file (in any subdirectory) of the passed-in glob
+patterns.
+
+A note on the design of the program:
+
+    The file watching actually happens in a separate thread. When that thread
+    signals back to the main thread that a matching file has been changed, the
+    main thread exits and stops the auxiliary thread.
+
+This is done so that when a keyboard interrupt is triggered, the Python runtime
+is awoken and can stop.
+
+"""
+
 
 import os
+import re
 import sys
+import time
+import threading
 
 import fsevents
 
+
+matched_ev = threading.Event()
+
+
+def issubpath(n, f):
+    return n.startswith(f + os.path.sep)
+
+
+def glob_to_re(a):
+    pat = r'^' + re.escape(a) + r'(?:$|/)'
+    pat = pat.replace(r'\\\*', '\0blorp\0')
+    pat = pat.replace(r'\/\*', r'\/[^\.]\*')
+    pat = pat.replace(r'\*', '[^/]+')
+    pat = pat.replace('\0blorp\0', r'\\\*')
+    dirn = a.split('*', 1)[0].rsplit('/', 1)[0]
+    return dirn, pat
+
+
 def main(args=sys.argv[1:]):
     obs = fsevents.Observer()
+    args = map(os.path.abspath, args)
+    dirns, res = zip(*map(glob_to_re, args))
+    res = map(re.compile, res)
     def callback(ev):
-        sys.exit(0)
-    if not all(map(os.path.isdir, args)):
-        raise SystemExit("only dirs plz")
-    stream = fsevents.Stream(callback, file_events=True, *args)
+        for sre in res:
+            if sre.search(ev.name) is not None:
+                sys.stdout.write('changed: %s\n' % (ev.name,))
+                matched_ev.set()
+    stream = fsevents.Stream(callback, *dirns, file_events=True)
+    obs.daemon = True
     obs.schedule(stream)
-    obs.run()
+    obs.start()
+    try:
+        while not matched_ev.is_set():
+            matched_ev.wait(timeout=3600)
+    except KeyboardInterrupt:
+        sys.exit(1)
+    finally:
+        obs.stop()
+
 
 if __name__ == "__main__":
     main()

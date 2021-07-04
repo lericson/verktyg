@@ -1,5 +1,6 @@
 #!/bin/bash
-set -ex
+set -e
+[ $EUID -ne 0 ] && echo 'warning: probably should run as root' >&2
 cd /System/Library/CoreServices/Spotlight.app/Contents/MacOS
 T="${TMPDIR:-${TMP:-/tmp}}/Spotlight.bak.$$"
 echo "backup at $T"

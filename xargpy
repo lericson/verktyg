@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""xargs but it's python code that generates the command
+
+`xargs abc` reads stdin and starts a process `abc <line>` per line
+
+each argument to xargspy is a python expression with the variable line set
+current line. each expression will be passed as an argument to the subprocess
+so `xargspy "abc" line` will call abc <line> as before.
+"""
+
+
+import sys
+import subprocess
+
+# Convenience globals
+import os
+import numpy as np
+from os import path
+
+
+def main(args=sys.argv[1:]):
+    for lineno, line in enumerate(sys.stdin):
+        subprocess.check_call([str(eval(arg, globals(), dict(locals(), arg=arg, line=line, lineno=lineno))) for arg in args])
+
+
+if __name__ == "__main__":
+    main()

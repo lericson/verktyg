@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+URL="$1"
+CURR="$(curl -s $URL | md5)"
+while true; do
+    NEW="$(curl -Ls $URL | md5)"
+    if [ "$CURR" != "$NEW" ]; then
+        break
+    fi
+    sleep 5
+done
+exec osascript -e 'display notification with "$URL" title "Page has been changed!" sound name "Submarine"'

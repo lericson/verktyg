@@ -12,7 +12,7 @@ LSRC=/tmp/$TGT
 DST=jing/$TGT
 URL=http://bsg.lericson.se/jing/$TGT
 
-screencapture -i "$LSRC" || exit
+pbpastim png > "$LSRC" || exit
 scp -q "$LSRC" "${HOST:-moln.lericson.se}:htdocs/$DST" || exit
 rm "$LSRC"
 echo "$URL"

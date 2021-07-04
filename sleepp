@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import sys
+import time
+
+if __name__ == "__main__":
+    dt = float(sys.argv[1])
+    t0 = time.time()
+    steps = 10
+    steptime = dt/steps
+    for i in range(steps):
+        ti = t0 + (i+1)*steptime
+        time.sleep(ti - time.time())
+        tn = time.time()
+        print(f'{(tn - t0)/dt*100:.0f}% done, {max(0, (t0 + dt) - tn):.2f} secs remaining', file=sys.stderr)

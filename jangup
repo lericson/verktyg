@@ -1,0 +1,16 @@
+#!/bin/bash
+
+for LSRC; do
+  TGT=$(python - "$LSRC" <<PY
+import sys, random, string, os
+bn, ext = os.path.splitext(sys.argv[1])
+print "".join(random.choice(string.letters + string.digits) for i in xrange(12)) + ext
+PY
+)
+
+  DST=jing/$TGT
+  URL=http://bsg.lericson.se/$DST
+  
+  scp -q "$LSRC" "${HOST:-moln.lericson.se}:htdocs/$DST" || exit
+  echo "$URL"
+done

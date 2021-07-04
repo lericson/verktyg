@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import argparse
+
+import numpy as np
+
+parser = argparse.ArgumentParser(description='Convert a numpy.save/numpy.savez '
+                                             'array file to CSV.')
+parser.add_argument('filename', metavar='FILE', help='.npy or .npz file to read from')
+parser.add_argument('key', metavar='KEY', nargs='?',
+                    help='if FILE is an archive, read KEY from it')
+
+def print_archive_items(filename):
+    items = np.load(filename)
+    print(f'Archive "{filename}" contents:')
+    for key, arr in items.items():
+        if arr.ndim > 0:
+            shape_desc = '⨉'.join(map(str, arr.shape))
+        else:
+            shape_desc = 'scalar'
+        print(f'- {key} ({shape_desc})')
+
+def print_archive_item(args):
+    it = np.load(args.filename)
+    if args.key is not None:
+        it = it[args.key]
+    if it.ndim > 2:
+        print('tensor is of higher order than two')
+        print(it)
+    else:
+        for row in np.atleast_2d(it):
+            print(','.join(map(str, row)))
+
+def main():
+    args = parser.parse_args()
+    if args.filename.lower().endswith('.npz'):
+        if not args.key:
+            print_archive_items(args.filename)
+        else:
+            print_archive_item(args)
+    else:
+        print_archive_item(args)
+
+if __name__ == "__main__":
+    main()

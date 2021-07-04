@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"pbpastim -- pbpaste improved"
+
+import sys
+import pasteboard
+
+pb = pasteboard.Pasteboard()
+type_name = (sys.argv[1:] + ['string'])[0]
+pasteboard.STRING = pasteboard.String
+type = getattr(pasteboard, type_name.upper())
+data = pb.get_contents(type=type)
+if data is None:
+    print('found no data in pasteboard', file=sys.stderr)
+    sys.exit(1)
+if isinstance(data, str):
+    data = data.encode('utf-8')
+sys.stdout.buffer.write(data)

@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"print the latest file's name for some directories"
+
+
+import os
+import sys
+
+
+def latest_file(arg):
+    fnames = map((lambda fn: os.path.join(arg, fn)), os.listdir(arg))
+    key = lambda fn: os.stat(fn).st_mtime
+    return sorted(fnames, key=key, reverse=True)[0]
+
+
+if __name__ == "__main__":
+    for arg in sys.argv[1:]:
+        print(latest_file(arg))

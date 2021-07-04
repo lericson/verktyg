@@ -1,0 +1,13 @@
+#!/bin/bash
+
+I=en0
+while true; do
+    if ! networksetup -getairportnetwork $I | grep ^Current >/dev/null; then
+        echo $0: no airport network on $I, attempting to rejoin
+        networksetup -setairportpower $I off
+        networksetup -setairportpower $I on
+        sleep 30
+    else
+        sleep 600
+    fi
+done

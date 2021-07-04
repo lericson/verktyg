@@ -1,0 +1,18 @@
+#!/bin/bash
+
+python3 - "$(tmutil status | tail +2 | plutil -convert json -o - -)" <<PY
+import sys, json
+inp = sys.argv[1]
+d = json.loads(inp)
+if int(d['Running']) == 0:
+    print("Time Machine is idle.")
+elif 'Progress' not in d:
+    print(f"Time Machine is active ({d['BackupPhase']})")
+else:
+    if 'TimeRemaining' in d['Progress']:
+        print(f"Time remaining:   {int(d['Progress']['TimeRemaining'])/3600.:.2f} hours")
+    print(f"Copied bytes: {int(d['Progress']['bytes'])/1024/1024.:-10.2f} MiB")
+    print(f"Total  bytes: {int(d['Progress']['totalBytes'])/1024/1024.:-10.2f} MiB")
+if int(d.get('Stopping', 0)) == 1:
+    print("Time Machine is stopping.")
+PY

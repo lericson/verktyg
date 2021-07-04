@@ -1,0 +1,96 @@
+#!/usr/bin/env python3.9
+
+import struct
+from time import time, sleep
+from os import environ, path, stat
+
+import objc
+import Foundation
+from ctypes import CDLL, c_uint, byref, create_string_buffer
+from ctypes.util import find_library
+
+
+libc = CDLL(find_library("c"))
+
+NSUserNotification = objc.lookUpClass('NSUserNotification')
+NSUserNotificationCenter = objc.lookUpClass('NSUserNotificationCenter')
+
+
+def notify(title, subtitle, info_text, delay=0, sound=False, identifier=None):
+    notification = NSUserNotification.alloc().init()
+    notification.setTitle_(title)
+    notification.setSubtitle_(subtitle)
+    notification.setInformativeText_(info_text)
+    notification.setHasActionButton_(True)
+    notification.setActionButtonTitle_("View")
+    NSUserNotificationCenter.defaultUserNotificationCenter().setDelegate_(object())
+    if sound:
+        notification.setSoundName_("NSUserNotificationDefaultSoundName")
+    if delay > 0:
+        notification.setDeliveryDate_(Foundation.NSDate.dateWithTimeInterval_sinceDate_(delay, Foundation.NSDate.date()))
+        NSUserNotificationCenter.defaultUserNotificationCenter().scheduleNotification_(notification)
+    else:
+        NSUserNotificationCenter.defaultUserNotificationCenter().deliverNotification_(notification)
+
+
+def sysctl_raw(name):
+    size = c_uint(0)
+    libc.sysctlbyname(bytes(name, 'ascii'), None, byref(size), None, 0)
+    buf = create_string_buffer(size.value)
+    libc.sysctlbyname(bytes(name, 'ascii'), buf, byref(size), None, 0)
+    return buf.raw
+
+
+def sysctl_struct(name, fmt):
+    sz = struct.calcsize(fmt)
+    raw = sysctl_raw(name)
+    return struct.unpack(fmt, raw[:sz])
+
+
+def loadavg():
+    w1, w2, w3, sc = sysctl_struct('vm.loadavg', '3Il')
+    sc = float(sc)
+    return w1/sc, w2/sc, w3/sc
+
+
+def swapusage():
+    total, free, used, flags = sysctl_struct('vm.swapusage', '4L')
+    assert total == free+used
+    if total == 0:
+        return 0.0
+    return float(used)/total
+
+
+def thermal_levels():
+    return (*sysctl_struct('machdep.xcpm.cpu_thermal_level', '1I'),
+            *sysctl_struct('machdep.xcpm.gpu_thermal_level', '1I'),
+            *sysctl_struct('machdep.xcpm.io_thermal_level', '1I'))
+
+
+#while 1:
+#  print(thermal_levels())
+#  __import__('time').sleep(1.0)
+#raise SystemExit
+
+
+loadavg_threshold = 12.0
+swapusage_threshold = 0.95
+thermal_threshold = 70.0
+
+
+def muted(name, mute_duration=15*60.):
+    fn = path.join(environ.get('HOME', '/'), '.mute_' + name)
+    if not path.exists(fn):
+        return False
+    mtime = stat(fn).st_mtime
+    return time() - mtime < mute_duration
+
+
+#if loadavg()[1] > loadavg_threshold and not muted('load_warning'):
+#    notify('System Health Monitor', 'High load average', 'System load averages are unusually high, your system may feel unresponsive as a consequence.', sound=False)
+if max(thermal_levels()) > thermal_threshold and not muted('thermal_warning'):
+    notify('System Health Monitor', 'High thermal levels', 'Thermal levels are unusually high, your system may feel unresponsive as a consequence.', sound=False)
+if swapusage() > swapusage_threshold and not muted('swap_warning'):
+    notify('System Health Monitor', 'High swap usage', 'Swap usage is unusually high, your system may feel unresponsive as a consequence.', sound=False)
+sleep(0.2)
+#notify("Test message", "Subtitle", "Load averages: %r" % sysctl_raw('vm.loadavg'), sound=True)

@@ -1,0 +1,37 @@
+#!/bin/bash
+# notify-on-error: Create a Reminder that will show up on your iPhone when a
+# long running task fails. For example,
+#
+#   notify-on-error make
+#
+# It's magical.
+
+"$@" && exit
+
+exec osascript - "$1 failed" <<OSA
+on run argv
+    tell application "Reminders"
+        tell list "Failed Commands"
+            set reminderDate to (current date) + (0.10 * minutes)
+            set reminderName to (item 1 of argv)
+            make new reminder at end with properties {name: reminderName, remind me date: reminderDate}
+        end tell
+    end tell
+end run
+OSA
+
+# If you prefer calendar notifications:
+exec osascript - "$1 failed" <<OSA
+on run argv
+    set theStartDate to (current date) + (0.1 * minutes)
+    set theEndDate to theStartDate + (1 * hours)
+    
+    tell application "Calendar"
+        tell calendar "Personligt"
+            set theEvent to make new event with properties {summary:(item 1 of argv), start date:theStartDate, end date:theEndDate}
+            make new display alarm at end of display alarms of theEvent with properties {trigger interval:0}
+        end tell
+        reload calendars
+    end tell
+end run
+OSA

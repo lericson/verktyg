@@ -1,2 +1,4 @@
 #!/bin/sh
-pbpaste | pastabin "$@" | pbcopy
+set -e
+url="$(pbpastim | pastabin "$@")"
+echo "$url" | pbcopy
