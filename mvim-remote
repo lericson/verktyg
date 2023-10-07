@@ -3,7 +3,7 @@
 
 mvim="${mvim-mvim}"
 addpath=/usr/local/bin
-[[ "$PATH" =~ [^:]$addpath[:$] ]] || PATH="$addpath${PATH+:$PATH}"
+[[ ":$PATH:" != *":$addpath:"* ]] && PATH="$addpath${PATH+:$PATH}"
 
 for arg; do
   [[ "$arg" =~ ^[-+] ]] && continue
