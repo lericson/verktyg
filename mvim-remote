@@ -1,0 +1,19 @@
+#!/bin/bash
+# set et sts=2 sw=2
+
+mvim="${mvim-mvim}"
+addpath=/usr/local/bin
+[[ "$PATH" =~ [^:]$addpath[:$] ]] || PATH="$addpath${PATH+:$PATH}"
+
+for arg; do
+  [[ "$arg" =~ ^[-+] ]] && continue
+  file="$arg" && break
+done
+
+[[ -z "$file" ]] && exit 1
+
+for server in $("$mvim" --serverlist); do
+  hasbuf="$("$mvim" --servername "$server" --remote-expr "bufexists('$file')")"
+  [[ "$hasbuf" == 1 ]] && exec "$mvim" --servername "$server" "$@"
+done
+exec "$mvim" "$@"
