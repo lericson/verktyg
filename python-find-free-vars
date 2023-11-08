@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import sys
+import ast
+def foo(arg0, /, arg1, arg2=2, *, arg3=3):
+    from x import y as b ; import z as ce, x ; assert (d := 1)
+    (a,) = b, c, d, arg
+
+c = sys.stdin.read()
+if c and c[0].isspace():
+  c = 'if 1:\n' + c
+t = ast.parse(c, filename='<stdin>')
+#print(ast.dump(t))
+
+assigned = set(__builtins__.__dict__) | {'__builtins__'}
+for x in ast.walk(t):
+    if isinstance(x, ast.Name):
+        if isinstance(x.ctx, ast.Store):
+            assigned.add(x.id)
+        elif isinstance(x.ctx, ast.Load):
+            if x.id not in assigned:
+                print(x.id)
+                assigned.add(x.id)
+        elif isinstance(x.ctx, ast.Del):
+            if x.id not in assigned:
+                print(x.id)
+            else:
+                assigned.remove(x.id)
+    elif isinstance(x, ast.FunctionDef):
+        for arg in (*x.args.posonlyargs, *x.args.args, *x.args.kwonlyargs):
+            assigned.add(arg.arg)
+    elif isinstance(x, (ast.Import, ast.ImportFrom)):
+        for alias in x.names:
+            assigned.add(alias.asname or alias.name)

@@ -1,0 +1,18 @@
+#!/usr/bin/env python3.9
+
+
+import re
+import sys
+
+
+from_import_re = re.compile(r'(\s*import\s*|\s*from\s+.*\s+import\s*)\s(.+)')
+
+
+for line in sys.stdin:
+    line = line.rstrip('\n')
+    if (m := from_import_re.match(line)):
+        names = m.group(2).split(',')
+        for name in names:
+            print(f'{m.group(1).rstrip()} {name.strip()}')
+    else:
+        print(line)

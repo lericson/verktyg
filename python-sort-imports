@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec sort-py 'lambda r: (-ord(r.strip()[0]), len(r.strip().split()[1]), r.strip().split()[1], len(r), r)' "$@"
