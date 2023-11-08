@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import os
+import enum
+import fcntl
+import argparse
+from functools import reduce
+
+
+flag_map = {name[2:]: mask for name, mask in os.__dict__.items()
+            if name.startswith('O_')}
+
+FileFlags = enum.IntFlag('FileFlags', flag_map)
+
+
+parser = argparse.ArgumentParser()
+opt_names = {name.lower() for name in flag_map}
+parser.add_argument('--set', action='append', default=[], choices=opt_names)
+parser.add_argument('--unset', action='append', default=[], choices=opt_names)
+parser.add_argument('fds', nargs='*', type=int, help='FDs to print/set on. '
+                    'Passing nothing means any open FD.')
+
+
+def main():
+    args = parser.parse_args()
+
+    fds = args.fds
+    if not fds:
+        fds = map(int, os.listdir(f'/dev/fd'))
+
+    combine = lambda flags, name: flags | FileFlags[name.upper()]
+    set_flags = reduce(combine, args.set, FileFlags(0))
+    unset_flags = reduce(combine, args.unset, FileFlags(0))
+
+    if set_flags & unset_flags:
+        parser.error(f'cannot both set and unset a flag: {set_flags & unset_flags!s}')
+
+    for i in fds:
+        try:
+            flags_old = FileFlags(fcntl.fcntl(i, fcntl.F_GETFL))
+            flags_new = flags_old
+            flags_new |= set_flags
+            flags_new &= ~unset_flags
+            fcntl.fcntl(i, fcntl.F_SETFL, int(flags_new))
+        except OSError as e:
+            # os.listdir() opens an FD and closes it, so this happens a bit.
+            print(f'flags(#{i}) error: {os.strerror(e.errno)}')
+        else:
+            if flags_old != flags_new:
+                print(f'flags(#{i}) = {flags_old!s} -> {flags_new!s}')
+            else:
+                print(f'flags(#{i}) = {flags_old!s}')
+
+
+if __name__ == '__main__':
+    main()
