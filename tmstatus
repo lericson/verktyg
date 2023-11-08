@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env python3
+import sys
+import json
+import subprocess
 
-python3 - "$(tmutil status | tail +2 | plutil -convert json -o - -)" <<PY
-import sys, json
-inp = sys.argv[1]
+err, inp  = subprocess.getstatusoutput('tmutil status | tail +2 | plutil -convert json -o - -')
+if err != 0:
+    raise ValueError(err)
 d = json.loads(inp)
+
 if int(d['Running']) == 0:
     print("Time Machine is idle.")
 elif 'Progress' not in d:
@@ -15,4 +19,3 @@ else:
     print(f"Total  bytes: {int(d['Progress']['totalBytes'])/1024/1024.:-10.2f} MiB")
 if int(d.get('Stopping', 0)) == 1:
     print("Time Machine is stopping.")
-PY
