@@ -1,0 +1,16 @@
+#!/bin/bash
+
+for LSRC; do
+  TGT=$(python3 - <<PY
+import sys, random, string, os
+ext = '.html'
+print("".join(random.choice(string.ascii_letters + string.digits) for i in range(12)) + ext)
+PY
+)
+
+  DST=pasta/$TGT
+  URL=https://bsg.lericson.se/$DST
+  
+  mkpasta "$LSRC" | ssh "${HOST:-moln.lericson.se}" cat \>"htdocs/$DST" || exit $?
+  echo "$URL"
+done
