@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import sys
 import argparse
 import datetime
@@ -19,9 +20,15 @@ def filter_scheduled(it, prefix="Scheduled: "):
 
 def parse_datetimes(line):
     lead, start_txt, to, stop_txt = line.strip().rsplit(' ', 3)
-    start = datetime.datetime.strptime(start_txt, time_format)
-    stop = datetime.datetime.strptime(stop_txt, time_format)
+    # line = '18 Oct 2021 at 15:00 to 18:00, CEST'
+    m = re.match(r'(?:\d+ \w+ \d+ at )?(\d\d:\d\d) to (\d\d:\d\d)(?:, \w+)?', line)
+    if not m:
+        raise ValueError(line)
+    t0, t1 = m.groups()
+    start = datetime.datetime.strptime(t0, time_format)
+    stop = datetime.datetime.strptime(t1, time_format)
     stop = start.replace(hour=stop.hour, minute=stop.minute, second=stop.second)
+    assert start < stop
     return stop, start
 
 def format_timedelta(diff):
