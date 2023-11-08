@@ -4,8 +4,8 @@ out="$1"
 shift
 while when_changed "$@"; do
   if make $out </dev/null; then
-    osascript -e 'display notification "'"$out"'" with title "Build Finished" sound name "Bottle"'
+    terminal-notifier -group makeloop$$ -title "$out" -message "Build Finished" -sound Bottle
   else
-    osascript -e 'display notification "'"$out"'" with title "Build Failed: '$?'" sound name "Sosumi"'
+    terminal-notifier -group makeloop$$ -title "$out" -message "Build Failed: '$?'" -sound Sosumi
   fi
 done
