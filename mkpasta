@@ -1,0 +1,101 @@
+#!/Users/lericson/.pyenv/versions/3.10.6/bin/python3.10
+# vim: set ft=python
+import os
+import sys
+import random
+import string
+import datetime
+from dataclasses import field
+from dataclasses import dataclass
+
+import pygments
+from pygments.lexers import guess_lexer
+from pygments.lexers import guess_lexer_for_filename as guess_lexer_fn
+from pygments.lexers import get_lexer_by_name
+from pygments.lexers import ClassNotFound as LexerNotFound
+from pygments.formatters import HtmlFormatter
+
+
+BASE_URL = os.environ.get('BASE_URL', 'https://bsg.lericson.se/pasta/')
+
+
+@dataclass
+class Pasta:
+    lexer: str
+    code: str
+    code_html: str = field(default=None)
+
+    def _make_formatter(self):
+        return HtmlFormatter(cssclass='source', linenos=True, linenospecial=5)
+
+    def _make_lexer(self):
+        if isinstance(self.lexer, str):
+            self.lexer = get_lexer_by_name(self.lexer)
+        return self.lexer
+
+    def hilight(self):
+        formatter = self._make_formatter()
+        lexer = self._make_lexer()
+        self.code_html = pygments.highlight(self.code, lexer, formatter)
+        return self.code_html
+
+
+def make_pasta(code, lexer='guess', fn=None):
+    errors = []
+
+    if not lexer:
+        errors.append(('missing-lexer', 'No lexer name given.'))
+
+    if not code:
+        errors.append(('missing-code', 'No code given.'))
+
+    if lexer == 'guess':
+        try:
+            lexer = guess_lexer_fn(fn, code) if fn else guess_lexer(code)
+        except LexerNotFound as e:
+            errors.append(('lexer-not-found', e.args[0]))
+
+    if errors:
+        return None, errors
+
+    pasta = Pasta(lexer=lexer, code=code)
+
+    try:
+        pasta.hilight()
+    except LexerNotFound as e:
+        return None, [('lexer-not-found', e.args[0])]
+    else:
+        return pasta, None
+
+
+def render(pasta):
+    return f'''<!doctype html>
+<html>
+  <head>
+    <title>Viewing the {pasta.lexer} pasta</title>
+    <link rel="stylesheet" href="{BASE_URL}main.css" type="text/css">
+  </head>
+  <body>
+    {pasta.code_html}
+  </body>
+</html>
+'''
+
+
+if __name__ == '__main__':
+    if {'-h', '--help'} & {a.casefold().strip() for a in sys.argv[1:]}:
+        print(f'env lexer=... {sys.argv[0]} <filename>')
+        sys.exit(1)
+    fn, = sys.argv[1:] or ['-']
+    fn = None if fn == '-' else fn
+    f = sys.stdin if fn is None else open(fn)
+    with f:
+        code = f.read()
+    pasta, errs = make_pasta(code, lexer=os.environ.get('lexer', 'guess'), fn=fn)
+    if errs is not None:
+        print('Errors occurred:', file=sys.stderr)
+        for ecode, desc in errs:
+            print(f' * {ecode}: {desc}', file=sys.stderr)
+        sys.exit(1)
+    else:
+        print(render(pasta))
