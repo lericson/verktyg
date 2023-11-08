@@ -1,0 +1,11 @@
+#!/bin/bash
+
+git config --get-regexp 'remote\..*\.url' | while read remote url; do
+  if [[ "x$url" = xgit@github.com:* ]]; then
+    open "https://github.com/${url//git@github.com:/}"
+    exit $?
+  elif [[ "x$url" = xhttps://github.com/ ]]; then
+    open "$url"
+    exit $?
+  fi
+done
