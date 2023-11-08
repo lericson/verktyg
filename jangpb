@@ -10,7 +10,7 @@ TGT="${1:-$TGT}"
 
 LSRC=/tmp/$TGT
 DST=jing/$TGT
-URL=http://bsg.lericson.se/jing/$TGT
+URL=https://bsg.lericson.se/jing/$TGT
 
 pbpastim png > "$LSRC" || exit
 scp -q "$LSRC" "${HOST:-moln.lericson.se}:htdocs/$DST" || exit
