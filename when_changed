@@ -19,7 +19,7 @@ is awoken and can stop.
 import os
 import re
 import sys
-import time
+import argparse
 import threading
 
 import fsevents
@@ -27,43 +27,74 @@ import fsevents
 
 matched_ev = threading.Event()
 
+CAUSES = 'attrib create delete modify moved_from moved_to'.split()
+CAUSE_MAP = {k: getattr(fsevents, f'IN_{k.upper()}') for k in CAUSES}
 
-def issubpath(n, f):
-    return n.startswith(f + os.path.sep)
 
-
-def glob_to_re(a):
+def pat_to_re(a):
     pat = r'^' + re.escape(a) + r'(?:$|/)'
     pat = pat.replace(r'\\\*', '\0blorp\0')
     pat = pat.replace(r'\/\*', r'\/[^\.]\*')
     pat = pat.replace(r'\*', '[^/]+')
     pat = pat.replace('\0blorp\0', r'\\\*')
-    dirn = a.split('*', 1)[0].rsplit('/', 1)[0]
-    return dirn, pat
+    #print(f'{pat = }')
+    return re.compile(pat)
 
 
-def main(args=sys.argv[1:]):
-    obs = fsevents.Observer()
-    args = map(os.path.abspath, args)
-    dirns, res = zip(*map(glob_to_re, args))
-    res = map(re.compile, res)
+def pat_to_dirn(a):
+    return a.split('*', 1)[0].rsplit('/', 1)[0]
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument('--exclude', '-x', action='append', default=[])
+ap.add_argument('pattern',         nargs='+')
+
+
+def main(args=None):
+    opts = ap.parse_args(args)
+    #print(f'{opts = }')
+
+    # All patterns (and excludes) must be absolute since the FSEvents are
+    # absolute.
+    opts.pattern = [os.path.abspath(p) for p in opts.pattern]
+    opts.exclude = [os.path.abspath(p) for p in opts.exclude]
+
+    include_tests = [pat_to_re(p).match for p in opts.pattern]
+    exclude_tests = [pat_to_re(p).match for p in opts.exclude]
+
+    #: Which directories to watch.
+    watch_dirns = [pat_to_dirn(p) for p in opts.pattern]
+
     def callback(ev):
-        for sre in res:
-            if sre.search(ev.name) is not None:
-                sys.stdout.write('changed: %s\n' % (ev.name,))
-                matched_ev.set()
-    stream = fsevents.Stream(callback, *dirns, file_events=True)
+        include_results = [t(ev.name) for t in include_tests]
+        exclude_results = [t(ev.name) for t in exclude_tests]
+        #print(f'{ev.name = }')
+        #print(f'{include_results = }')
+        #print(f'{exclude_results = }')
+        if any(include_results) and not any(exclude_results):
+            #print(ev.mask, bin(ev.mask), {k for k, m in CAUSE_MAP.items() if ev.mask & m}, ev.name)
+            sys.stdout.write('changed: %s\n' % (ev.name,))
+            matched_ev.set()
+
+
+    obs = fsevents.Observer()
     obs.daemon = True
+
+    #print(f'{watch_dirns = }')
+    stream = fsevents.Stream(callback, *watch_dirns, file_events=True)
     obs.schedule(stream)
+
     obs.start()
+
     try:
         while not matched_ev.is_set():
-            matched_ev.wait(timeout=3600)
+            if not obs.is_alive():
+                sys.exit(2)
+            matched_ev.wait(timeout=1)
     except KeyboardInterrupt:
         sys.exit(1)
     finally:
         obs.stop()
-
 
 if __name__ == "__main__":
     main()
