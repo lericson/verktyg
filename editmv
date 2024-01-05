@@ -1,0 +1,129 @@
+#!/bin/bash
+# vim: et sts=2 sw=2
+
+# Batch File Renamer
+# Allows the user to batch rename files by editing their names in a text editor.
+# Usage: ./script.sh [mv-options] filenames ...
+
+bn=$(basename $0)
+
+declare -a mvopts oldnames newnames
+
+mvopts=()
+oldnames=()
+declare -i ignore_overwrites=0
+declare -i edit_both=0
+
+while [[ 0 < "$#" ]]; do
+  arg="$1"
+  shift
+  if [[ "$arg" == "--ignore-overwrites" ]]; then
+    ignore_overwrites=1
+  elif [[ "$arg" == "--both" ]]; then
+    edit_both=1
+  elif [[ "$arg" == "--" ]]; then
+    oldnames+=("$@")
+    set --
+  elif [[ "$arg" == -* ]]; then
+    mvopts+=("$arg")
+  else
+    oldnames+=("$arg")
+  fi
+done
+
+if [[ "${#oldnames[@]}" == 0 ]]; then
+  echo "$bn: no filenames provided" >&2
+  exit 64
+fi
+
+newnamesfile="$(mktemp -t $bn)" || exit
+oldnamesfile="$newnamesfile.old" || exit
+
+cleanup_aisle_six() {
+  rm -f "$oldnamesfile" "$newnamesfile" >/dev/null 2>&1
+}
+trap cleanup_aisle_six EXIT
+
+printf "%s\n" "${oldnames[@]}" >"$oldnamesfile" || exit
+cat "$oldnamesfile" >"$newnamesfile" || exit
+
+check_unclobbered() {
+  # Check for clobbering issues. If ${newnames[$j]} is equal to ${oldnames[$i]}
+  # for j < i, it means that by the time we get to old name i, it has been
+  # replaced by new name j.
+  # Check for multiple same targets. If ${newnames[$j]} is equal to
+  # ${newnames[$i]} for j < i, it means that by the time we get to new name i,
+  # there is already a file with that name.
+  declare -i rc=0
+  for i in "${!oldnames[@]}"; do
+    for j in "${!newnames[@]}"; do
+      (( j < i )) || break
+      if [[ "${newnames[$j]}" == "${newnames[$i]}" ]]; then
+        printf "%s: prior mv on line %d clobbers target on line %d\n" "$bn" $((j+1)) $((i+1)) >&2
+        printf "  line %d: %q -> %q\n" $((j+1)) "${oldnames[$j]}" "${newnames[$j]}" >&2
+        printf "  line %d: %q -> %q\n" $((i+1)) "${oldnames[$i]}" "${newnames[$i]}" >&2
+        rc=$((rc | 2))
+      elif [[ "${newnames[$j]}" == "${oldnames[$i]}" ]]; then
+        printf "%s: prior mv on line %d overwrites source on line %d\n" "$bn" $((j+1)) $((i+1)) >&2
+        printf "  line %d: %q -> %q\n" $((j+1)) "${oldnames[$j]}" "${newnames[$j]}" >&2
+        printf "  line %d: %q -> %q\n" $((i+1)) "${oldnames[$i]}" "${newnames[$i]}" >&2
+        rc=$((rc | 4))
+      fi
+    done
+  done
+  return $rc
+}
+
+declare -a FILENAMES
+loadfilenames() {
+  #mapfile -t FILENAMES
+  FILENAMES=()
+  while IFS=$'\n' read -r line; do
+    FILENAMES+=("$line")
+  done
+}
+
+editor_cmd=("${EDITOR:-vi}" "$newnamesfile")
+[[ "$edit_both" == 1 ]] && editor_cmd+=("$oldnamesfile")
+
+while true; do
+
+  "${editor_cmd[@]}" || { echo ""${editor_cmd[@]}" exited non-zero ($?), cancelled" >&2; exit 2; }
+  #vimdiff "$oldnamesfile" "$newnamesfile" || { echo "vimdiff exited non-zero ($?), cancelled" >&2; exit 2; }
+
+  loadfilenames <"$oldnamesfile"
+  oldnames=("${FILENAMES[@]}")
+
+  loadfilenames <"$newnamesfile"
+  newnames=("${FILENAMES[@]}")
+
+  #printf "newnames[]=%q\n" "${newnames[@]}"
+
+  if [[ "${#newnames[@]}" != "${#oldnames[@]}" ]]; then
+    echo "$bn: new names list length (${#newnames[@]}) is not equal to old names list length (${#oldnames[@]})" >&2
+    exit 1
+  fi
+
+  if [[ "$ignore_overwrites" != 1 ]] && ! check_unclobbered; then
+    answer=?
+    while ! [[ "$answer" =~ ^[aei]?$ ]]; do
+      read -rp "[E]dit again, [I]gnore and continue, [A]bort? [aEi] " answer >&2
+    done
+    [[ -z "$answer"  ]] && answer=e
+    [[ "$answer" == a ]] && exit 32
+    [[ "$answer" == e ]] && continue
+    [[ "$answer" == i ]] && break
+    echo >&2
+  fi
+
+  break
+
+done
+
+declare -i err=0
+for i in "${!newnames[@]}"; do
+  [[ -z "${newnames[$i]}" ]] && continue
+  mv "${mvopts[@]}" "${oldnames[$i]}" "${newnames[$i]}" || err="$?"
+  # Invocation error, break early
+  [[ "$err" == 64 ]] && break
+done
