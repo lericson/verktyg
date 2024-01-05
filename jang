@@ -1,8 +1,6 @@
 #!/bin/bash
 
-TGT=$(randname).png
-TGT="${1:-$TGT}"
-
+TGT="${1:-$(randid 12).png}"
 LSRC=/tmp/$TGT
 DST=jing/$TGT
 URL=https://bsg.lericson.se/jing/$TGT

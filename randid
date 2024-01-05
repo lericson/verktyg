@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+import random
+import string
+import sys
+
+alphabet = string.ascii_letters + string.digits
+N = int(sys.argv[1])
+print("".join(random.choice(alphabet) for i in range(N)))
