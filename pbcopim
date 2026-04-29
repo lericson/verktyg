@@ -4,11 +4,11 @@
 import sys
 import pasteboard
 
+data = sys.stdin.buffer.read()
 pb = pasteboard.Pasteboard()
 type_name = (sys.argv[1:] + ['string'])[0]
 pasteboard.STRING = pasteboard.String
 type_ = getattr(pasteboard, type_name.upper())
-data = sys.stdin.buffer.read()
 rv = pb.set_contents(data, type=type_)
 if rv is not True:
     print('copy failed', file=sys.stderr)

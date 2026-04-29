@@ -76,9 +76,8 @@ def main(args=None):
             sys.stdout.write('changed: %s\n' % (ev.name,))
             matched_ev.set()
 
-
     obs = fsevents.Observer()
-    obs.daemon = True
+    #obs.daemon = True
 
     #print(f'{watch_dirns = }')
     stream = fsevents.Stream(callback, *watch_dirns, file_events=True)

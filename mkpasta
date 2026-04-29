@@ -1,4 +1,4 @@
-#!/Users/lericson/.pyenv/versions/3.10.6/bin/python3.10
+#!/Users/lericson/.pyenv/versions/3.11.5/bin/python3
 # vim: set ft=python
 import os
 import sys

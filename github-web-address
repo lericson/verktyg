@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo "Error: Not a Git repository." >&2
+    exit 1
+fi
+
+repo_url=$(git config --get remote.origin.url)
+
+if [ -z "$repo_url" ]; then
+    echo "Error: No 'origin' remote configured." >&2
+    exit 1
+fi
+
+case "$repo_url" in
+    git@github.com:*)
+        web_url="https://github.com/${repo_url#git@github.com:}"
+        ;;
+    https://github.com/*)
+        web_url="${repo_url%.git}"
+        ;;
+    *)
+        echo "Error: Unsupported repository URL format: $repo_url" >&2
+        exit 1
+        ;;
+esac
+
+web_url="${web_url%.git}"
+
+echo "$web_url"

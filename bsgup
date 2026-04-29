@@ -19,6 +19,6 @@ shift $((OPTIND-1))
 for F; do
     [[ -z "$NAME" ]] && NAME="$(basename "$F")"
     printf "%s://%s/%s\n" "$SCHEME" "$LINKHOST" "$NAME"
-    scp -q "$F" "$SCPHOST:$SCPDIR/'$NAME'"
+    scp -q "$F" "$SCPHOST:$SCPDIR/$NAME"
     unset NAME
 done
